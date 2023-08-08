@@ -4,33 +4,13 @@ function loadClientes() {
         url: '/clientes', 
         dataType: 'json',
         success: function(response) {
-            
-            $.each(response.data, function(index, cliente) {
-                var newRow = '<tr>';
-                newRow += '<td>' + cliente.id + '</td>';
-                newRow += '<td>' + cliente.nombre + '</td>';
-                newRow += '<td>' + cliente.apellido + '</td>';
-                newRow += '<td>' + cliente.domicilio + '</td>';
-                newRow += '<td>' + cliente.correo_electronico + '</td>';
-                newRow += '<td>';
-                newRow += '<button value="'+cliente.id+'" class="btnEditarCliente btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">Editar</button>';
-                newRow += '<button value="'+cliente.id+'" class="btnEliminar btn btn-outline-danger">Eliminar</button>';
-                newRow += '</td>';
-                newRow += '</tr>';
-                $('#clientesTable tbody').append(newRow);
-            });
-
-            $(".btnEditarCliente").each(function(index, boton) {
-                $(boton).on("click", function(){
-                    mostrarCliente($(this).val());
-                })
-            });
-
-            $(".btnEliminar").each(function(index, boton) {
-                $(boton).on("click", function(){
-                    eliminarCliente($(this).val());
-                })
-            });
+            if (response.data.length === 0) {
+                $('#clientesTable tbody').html('<tr><td colspan="6">No hay registros</td></tr>');
+            } else {
+                $.each(response.data, function(index, cliente) {
+                    agregarFilaCliente(cliente)
+                });
+            }
 
             $('#spinner').addClass("d-none");
             $('#clientesTable').removeClass("d-none");
@@ -50,8 +30,13 @@ function agregarCliente() {
         data: formData,
         dataType: 'json',
         success: function(response) {
+            if($('#clientesTable .filaCliente').length === 0){
+                $('#clientesTable tbody').empty();
+            }
+            agregarFilaCliente(response.data, false)
+            $('#agregarClienteForm')[0].reset();
+            $('#modalAdd').modal('hide');
             alert('message: ' + response.message);
-            location.reload();
         },
         error: function(xhr, status, error) {
             const errorMessage = xhr.responseJSON.error;
@@ -89,8 +74,13 @@ function editarCliente() {
         data: formData,
         dataType: 'json',
         success: function(response) {
+            let rowToUpdate = $("#cliente" + response.data.id);
+            rowToUpdate.find("td:eq(1)").text(response.data.nombre);
+            rowToUpdate.find("td:eq(2)").text(response.data.apellido);
+            rowToUpdate.find("td:eq(3)").text(response.data.domicilio);
+            rowToUpdate.find("td:eq(4)").text(response.data.correo_electronico);
+            $('#modalEdit').modal('hide');
             alert('message: ' + response.message);
-            location.reload();
         },
         error: function(xhr, status, error) {
             const errorMessage = xhr.responseJSON.error;
@@ -109,11 +99,12 @@ function eliminarCliente(id) {
                 _token: csrfToken
             }, 
             dataType: 'json',
-            beforeSend: function(xhr) {
-            },
             success: function(response) {
+                $("#cliente"+id).remove();
+                if($('#clientesTable .filaCliente').length === 0){
+                    $('#clientesTable tbody').html('<tr><td colspan="6">No hay registros</td></tr>');
+                }
                 alert('message: ' + response.message);
-                location.reload();
             },
             error: function(xhr, status, error) {
                 const errorMessage = xhr.responseJSON.error;
@@ -123,10 +114,24 @@ function eliminarCliente(id) {
     }
 }
 
+function agregarFilaCliente(cliente, isLast = true) {
+    let newRow = '<tr id="cliente' + cliente.id + '" class="filaCliente">';
+        newRow += '<td>' + cliente.id + '</td>';
+        newRow += '<td>' + cliente.nombre + '</td>';
+        newRow += '<td>' + cliente.apellido + '</td>';
+        newRow += '<td>' + cliente.domicilio + '</td>';
+        newRow += '<td>' + cliente.correo_electronico + '</td>';
+        newRow += '<td>';
+        newRow += '<button value="' + cliente.id + '" class="btnEditarCliente btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">Editar</button>';
+        newRow += '<button value="' + cliente.id + '" class="btnEliminar btn btn-outline-danger">Eliminar</button>';
+        newRow += '</td>';
+        newRow += '</tr>';
+
+    isLast ? $('#clientesTable tbody').append(newRow) : $(newRow).prependTo('#clientesTable tbody');
+}
+
 $(document).ready(function() {
     loadClientes();
-    $('#agregarClienteForm')[0].reset();
-
 
     $('#modalEdit').on('hidden.bs.modal', function () {
         $("#nombreEditar").val('');
@@ -145,4 +150,11 @@ $(document).ready(function() {
         editarCliente()
     });
 
+    $(document).on("click", ".btnEditarCliente", function() {
+        mostrarCliente($(this).val());
+    });
+    
+    $(document).on("click", ".btnEliminar", function(){
+        eliminarCliente($(this).val());
+    });
 });

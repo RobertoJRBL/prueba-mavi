@@ -15,6 +15,7 @@ class UserController extends Controller
     public function signin()
     {
         $credentials = request()->only('email', 'password');
+        
         if (Auth::attempt($credentials)) {
             request()->session()->regenerate();
             return response()->json(['success' => true]);
